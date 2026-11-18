@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Crée une lettre de motivation adaptée à une offre de stage." />
+    <title>Lettre de stage — Générateur de lettre</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18312f;
+        --muted: #667775;
+        --paper: #f7f8f4;
+        --panel: #ffffff;
+        --line: #dce4df;
+        --green: #146b55;
+        --green-dark: #0b5140;
+        --gold: #e7b84f;
+        --danger: #a33d35;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; color: var(--ink); background: var(--paper); }
+      .page { width: min(100% - 32px, 760px); margin: 0 auto; padding: 42px 0 64px; }
+      .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; font-weight: 750; letter-spacing: -.02em; }
+      .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--green); color: white; font-size: 18px; }
+      .eyebrow { margin: 0 0 10px; color: var(--green); font-size: 12px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+      h1 { max-width: 650px; margin: 0; font-size: clamp(34px, 7vw, 54px); line-height: 1.03; letter-spacing: -.055em; }
+      .intro { max-width: 600px; margin: 16px 0 26px; color: var(--muted); font-size: 17px; line-height: 1.6; }
+      .card { padding: clamp(20px, 5vw, 34px); border: 1px solid var(--line); border-radius: 20px; background: var(--panel); box-shadow: 0 12px 36px #213b3010; }
+      label { display: block; margin: 0 0 9px; font-size: 14px; font-weight: 700; }
+      .hint { margin: -3px 0 11px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+      textarea { display: block; width: 100%; min-height: 154px; padding: 14px 15px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); font: inherit; font-size: 15px; line-height: 1.5; resize: vertical; }
+      textarea:focus { outline: 3px solid #146b5523; border-color: var(--green); }
+      .field + .field { margin-top: 22px; }
+      #candidate { min-height: 118px; }
+      .privacy { margin: 20px 0 0; padding: 12px 14px; border-radius: 10px; background: #fff7e4; color: #66501e; font-size: 12px; line-height: 1.5; }
+      .actions { display: flex; align-items: center; gap: 12px; margin-top: 21px; }
+      button { min-height: 48px; padding: 0 19px; border: 0; border-radius: 11px; font: inherit; font-weight: 750; cursor: pointer; }
+      button:focus-visible { outline: 3px solid #e7b84f; outline-offset: 3px; }
+      button:disabled { cursor: wait; opacity: .68; }
+      .primary { background: var(--green); color: #fff; }
+      .primary:hover:not(:disabled) { background: var(--green-dark); }
+      .secondary { border: 1px solid var(--line); background: #fff; color: var(--ink); }
+      .status { min-height: 22px; margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+      .status.error { color: var(--danger); }
+      .result-wrap { display: none; margin-top: 24px; }
+      .result-wrap.visible { display: block; }
+      .result-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 11px; }
+      .result-head label { margin: 0; }
+      #result { min-height: 360px; background: #fffefa; }
+      .edit-note { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
+      footer { margin-top: 18px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+      @media (max-width: 520px) { .page { padding-top: 26px; } .brand { margin-bottom: 28px; } .actions { align-items: stretch; flex-direction: column; } .actions button { width: 100%; } .result-head { align-items: flex-start; flex-direction: column; } }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">L</span><span>Lettre de stage</span></div>
+      <p class="eyebrow">Pour ta prochaine candidature</p>
+      <h1>Une lettre qui répond à l’offre.</h1>
+      <p class="intro">Colle l’annonce et quelques éléments sur ton parcours. Tu obtiens une première version à relire, corriger et personnaliser avant de l’envoyer.</p>
+
+      <form class="card" id="letter-form">
+        <div class="field">
+          <label for="job">L’offre de stage</label>
+          <p class="hint">Colle le texte de l’annonce, ou décris le poste et l’entreprise.</p>
+          <textarea id="job" name="job" maxlength="12000" required placeholder="Ex. Stage en marketing digital chez… Missions : rédaction de contenus, suivi des réseaux sociaux…"></textarea>
+        </div>
+        <div class="field">
+          <label for="candidate">Ton parcours et tes points forts</label>
+          <p class="hint">Études, projets, compétences ou expériences utiles pour ce poste.</p>
+          <textarea id="candidate" name="candidate" maxlength="5000" required placeholder="Ex. Étudiant en deuxième année de… J’ai réalisé un projet de… Je maîtrise…"></textarea>
+        </div>
+        <p class="privacy">Cette version utilise l’offre gratuite de Gemini : Google peut utiliser les textes envoyés pour améliorer ses produits. N’ajoute ni adresse, ni téléphone, ni autre donnée personnelle sensible. Ce site ne conserve pas les textes après la réponse.</p>
+        <div class="actions"><button class="primary" id="generate" type="submit">Générer ma lettre</button></div>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+        <section class="result-wrap" id="result-wrap" aria-labelledby="result-label">
+          <div class="result-head">
+            <label id="result-label" for="result">Ta lettre — tu peux la modifier ici</label>
+            <button class="secondary" id="copy" type="button">Copier la lettre</button>
+          </div>
+          <textarea id="result" maxlength="10000" spellcheck="true" aria-label="Lettre générée et modifiable"></textarea>
+          <p class="edit-note">Relis-la attentivement et remplace les passages entre crochets avant tout envoi.</p>
+        </section>
+      </form>
+      <footer>La lettre générée est un brouillon : vérifie chaque détail et n’ajoute aucune expérience que tu n’as pas réellement vécue.</footer>
+    </main>
+    <script>
+      const form = document.querySelector("#letter-form");
+      const status = document.querySelector("#status");
+      const submitButton = document.querySelector("#generate");
+      const resultWrap = document.querySelector("#result-wrap");
+      const result = document.querySelector("#result");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const job = document.querySelector("#job").value.trim();
+        const candidate = document.querySelector("#candidate").value.trim();
+        if (job.length < 40 || candidate.length < 20) {
+          status.textContent = "Ajoute un peu plus de détails dans les deux champs pour obtenir une lettre utile.";
+          status.className = "status error";
+          return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = "Rédaction en cours…";
+        status.textContent = "L’IA prépare une première version. Cela peut prendre quelques secondes.";
+        status.className = "status";
+        resultWrap.classList.remove("visible");
+
+        try {
+          const response = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ job, candidate }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || "La génération n’a pas abouti. Réessaie dans un instant.");
+          result.value = data.letter || "";
+          if (!result.value) throw new Error("La réponse de l’IA était vide. Réessaie.");
+          resultWrap.classList.add("visible");
+          status.textContent = "Ta première version est prête. Relis-la avant de l’envoyer.";
+          result.focus();
+        } catch (error) {
+          status.textContent = error.message || "Une erreur est survenue. Réessaie dans un instant.";
+          status.className = "status error";
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = "Générer ma lettre";
+        }
+      });
+
+      document.querySelector("#copy").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(result.value);
+          status.textContent = "Lettre copiée. Tu peux la coller dans ton document.";
+          status.className = "status";
+        } catch {
+          result.select();
+          status.textContent = "Sélectionne la lettre puis utilise Ctrl+C pour la copier.";
+          status.className = "status";
+        }
+      });
+    </script>
+  </body>
+</html>
