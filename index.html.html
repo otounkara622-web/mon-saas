@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trouve ton SaaS à 0 €</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f5;--ink:#12202b;--mute:#52636f;--line:#c9d6dc;--card:#fff;--acc:#0b6e66;--acc-ink:#fff;--hi:#ffd166;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a21;--ink:#e8f0f3;--mute:#9bb0ba;--line:#26404c;--card:#14262f;--acc:#4fd1c5;--acc-ink:#06201d;--hi:#ffd166;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1a21;--ink:#e8f0f3;--mute:#9bb0ba;--line:#26404c;--card:#14262f;--acc:#4fd1c5;--acc-ink:#06201d;--hi:#ffd166;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.55 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px 20px 64px}
+h1{font-weight:800;font-size:clamp(2rem,7vw,3.2rem);line-height:1.05;margin:8px 0 16px;letter-spacing:-.02em}
+h1 mark{background:var(--hi);color:#12202b;padding:0 .15em}
+h2{font-weight:800;font-size:1.5rem;margin:0 0 8px}
+h3{font-weight:600;font-size:1.2rem;margin:0}
+p{margin:0 0 14px;max-width:62ch}
+.mute{color:var(--mute)}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--acc);color:var(--acc-ink);border:0;border-radius:8px;padding:14px 22px;font-weight:600}
+.btn.alt{background:transparent;color:var(--ink);border:2px solid var(--ink)}
+.btn:focus-visible,.opt:focus-visible,textarea:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:0 0 28px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);transition:width .25s}
+.opts{display:grid;gap:10px;margin-top:18px}
+.opt{text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:16px 18px}
+.opt:hover{border-color:var(--acc)}
+.idea{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:20px;margin:0 0 16px}
+.idea.top{border-color:var(--acc)}
+.idea .why{margin:10px 0 0;font-size:.95rem;color:var(--mute)}
+.price{font-weight:600;color:var(--acc)}
+textarea{width:100%;min-height:260px;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:14px;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace}
+.plan{padding-left:0;list-style:none;margin:0}
+.plan li{border-left:4px solid var(--acc);padding:2px 0 2px 14px;margin:0 0 14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+section{margin:44px 0 0}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<div id="intro">
+  <p class="mute">Gratuit, sans code, moins d’une heure par jour</p>
+  <h1>Trouve ton premier SaaS. <mark>Coût : 0 €.</mark></h1>
+  <p>Réponds à 5 questions. Tu reçois trois idées adaptées à toi, le prompt à copier dans Claude pour la construire, et ton plan des 30 premiers jours.</p>
+  <button class="btn" id="go">Commencer le sondage</button>
+</div>
+
+<div id="quiz" hidden>
+  <div class="bar"><i id="prog"></i></div>
+  <h2 id="q"></h2>
+  <div class="opts" id="opts"></div>
+</div>
+
+<div id="res" hidden>
+  <h1>Tes 3 idées</h1>
+  <p class="mute">Classées de la plus adaptée à la moins adaptée selon tes réponses.</p>
+  <div id="ideas"></div>
+
+  <section>
+    <h2>Ton prompt pour Claude</h2>
+    <p>Choisis l’idée à construire, puis copie ce prompt dans une nouvelle conversation avec Claude.</p>
+    <div class="row" id="pick"></div>
+    <textarea id="prompt" readonly aria-label="Prompt à copier"></textarea>
+    <div class="row">
+      <button class="btn" id="copy">Copier le prompt</button>
+      <button class="btn alt" id="again">Refaire le sondage</button>
+    </div>
+    <p class="mute" id="copied" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>Ton plan des 30 premiers jours</h2>
+    <ul class="plan" id="plan"></ul>
+  </section>
+</div>
+</main>
+
+<script>
+var QS=[
+{k:"aud",q:"À qui veux-tu vendre ?",o:[["pro","Freelances et artisans"],["etu","Étudiants"],["loc","Commerçants locaux"],["cre","Créateurs de contenu"],["spo","Sportifs et coachs"]]},
+{k:"lvl",q:"Ton niveau technique ?",o:[["zero","Je pars de zéro"],["nc","Un peu no-code"],["dev","Je sais coder"]]},
+{k:"tps",q:"Combien de temps par jour ?",o:[["1","Moins d’1 heure"],["2","1 à 3 heures"],["3","Plus de 3 heures"]]},
+{k:"ref",q:"Qu’est-ce que tu refuses de faire ?",o:[["video","Filmer des vidéos"],["call","Appeler ou démarcher"],["rien","Rien, je suis ouvert"]]},
+{k:"but",q:"Ton objectif ?",o:[["comp","Un complément de 300 à 500 € par mois"],["princ","Un revenu principal à terme"]]}
+];
+var IDEAS=[
+{n:"Devis et factures en 2 minutes",a:"pro",c:1,ch:"dm",p:"9 €/mois",d:"Un formulaire, un PDF propre, un suivi des paiements pour les artisans qui perdent du temps sur Word."},
+{n:"Relance automatique des factures impayées",a:"pro",c:2,ch:"dm",p:"12 €/mois",d:"Un tableau des clients qui n’ont pas payé et des emails de relance prêts à envoyer en un clic."},
+{n:"Planning de révisions pour examens",a:"etu",c:1,ch:"video",p:"4,90 €/mois",d:"L’étudiant entre ses dates d’examen et reçoit un planning de révision jour par jour."},
+{n:"Générateur de lettres de motivation ciblées",a:"etu",c:1,ch:"ecrit",p:"6 € par pack",d:"Colle une offre de stage, reçois une lettre adaptée au poste, à modifier avant l’envoi."},
+{n:"Réservation en ligne pour barbiers et coiffeurs",a:"loc",c:2,ch:"call",p:"15 €/mois",d:"Une page de réservation avec rappels par SMS pour réduire les rendez-vous manqués."},
+{n:"Carte de fidélité par QR code",a:"loc",c:1,ch:"call",p:"10 €/mois",d:"Le client scanne un QR code à chaque achat, le commerçant offre le 10e café."},
+{n:"Calendrier de contenu pour créateurs",a:"cre",c:1,ch:"video",p:"8 €/mois",d:"Un calendrier de posts avec idées d’accroches et rappels de publication."},
+{n:"Banque de scripts pour vidéos courtes",a:"cre",c:1,ch:"video",p:"7 €/mois",d:"Des structures de scripts pour TikTok et Reels, adaptées à la niche du créateur."},
+{n:"Suivi de séances pour coachs sportifs",a:"spo",c:2,ch:"dm",p:"14 €/mois",d:"Chaque client a son programme, ses charges et ses progrès, partagés par un lien."},
+{n:"Planificateur de repas pour sportifs",a:"spo",c:1,ch:"ecrit",p:"5 €/mois",d:"Des menus de la semaine selon l’objectif (prise de masse, sèche) et une liste de courses."}
+];
+var CH={dm:"messages privés à des profils ciblés",ecrit:"articles et posts écrits sur Google et les réseaux",video:"courtes vidéos TikTok et Instagram",call:"visites et appels aux commerces de ton quartier"};
+var A={},i=0,chosen=0,top3=[];
+function $(id){return document.getElementById(id)}
+function show(id){["intro","quiz","res"].forEach(function(x){$(x).hidden=x!==id})}
+function ask(){
+  var s=QS[i];$("prog").style.width=(i/QS.length*100)+"%";$("q").textContent=s.q;
+  var box=$("opts");box.innerHTML="";
+  s.o.forEach(function(o){var b=document.createElement("button");b.className="opt";b.textContent=o[1];
+    b.onclick=function(){A[s.k]=o[0];A[s.k+"_t"]=o[1];i++;i<QS.length?ask():finish()};box.appendChild(b)});
+}
+function score(x){
+  var s=0;
+  if(x.a===A.aud)s+=4;
+  if(A.lvl==="zero"&&x.c===1)s+=2;
+  if(A.tps==="1"&&x.c===1)s+=1;
+  if(A.ref==="video"&&x.ch==="video")s-=5;
+  if(A.ref==="call"&&x.ch==="call")s-=5;
+  if(A.ref==="call"&&x.ch==="dm")s-=1;
+  if(A.but==="princ"&&parseFloat(x.p)>=9)s+=1;
+  return s;
+}
+function finish(){
+  $("prog").style.width="100%";
+  top3=IDEAS.slice().sort(function(a,b){return score(b)-score(a)}).slice(0,3);
+  var box=$("ideas");box.innerHTML="";
+  top3.forEach(function(x,k){
+    var d=document.createElement("div");d.className="idea"+(k===0?" top":"");
+    var why="Pourquoi : cible "+A.aud_t.toLowerCase()+", "+(x.c===1?"version simple à construire":"un peu plus de travail")+", premiers clients via "+CH[x.ch]+".";
+    d.innerHTML="<h3></h3><p class='price'></p><p></p><p class='why'></p>";
+    d.children[0].textContent=x.n;d.children[1].textContent=x.p;d.children[2].textContent=x.d;d.children[3].textContent=why;
+    box.appendChild(d);
+  });
+  var pk=$("pick");pk.innerHTML="";
+  top3.forEach(function(x,k){var b=document.createElement("button");b.className="btn alt";b.textContent="Idée "+(k+1);
+    b.onclick=function(){chosen=k;render()};pk.appendChild(b)});
+  chosen=0;render();show("res");window.scrollTo(0,0);
+}
+function render(){
+  var x=top3[chosen];
+  var niv=A.lvl==="zero"?"Je pars de zéro : explique-moi tout pas à pas, une seule commande ou action à la fois, comme à un débutant complet. Dis-moi précisément où cliquer.":A.lvl==="nc"?"Je connais un peu le no-code : explique les étapes techniques simplement.":"Je sais coder : va droit au but.";
+  var t="Tu es mon cofondateur technique. Aide-moi à construire et lancer ce SaaS avec un budget de 0 €.\n\n"+
+  "IDÉE : "+x.n+"\nDescription : "+x.d+"\nCible : "+A.aud_t+"\nPrix visé : "+x.p+"\n\n"+
+  "MA SITUATION\n- Temps disponible : "+A.tps_t+" par jour\n- Niveau : "+A.lvl_t+"\n- Ce que je refuse : "+A.ref_t+"\n- Objectif : "+A.but_t+"\n\n"+
+  "CONSIGNES\n"+niv+"\nUtilise uniquement des outils gratuits : GitHub, Vercel (offre gratuite), Supabase (offre gratuite) et Stripe (commission seulement quand je vends).\n"+
+  "Construis d’abord la plus petite version utilisable (un seul écran principal, une seule action utile). Pas de fonctionnalités en plus.\n\n"+
+  "ÉTAPES\n1. Donne-moi la liste exacte des comptes à créer.\n2. Écris le code complet de la première version.\n3. Explique comment la mettre en ligne.\n4. Ajoute le paiement Stripe.\n5. Aide-moi à écrire mes premiers messages pour trouver des clients via "+CH[x.ch]+".\n\nCommence par l’étape 1.";
+  $("prompt").value=t;
+  var P=[["Jours 1 à 3","Crée tes comptes gratuits (GitHub, Vercel, Supabase, Stripe). Colle le prompt dans Claude et suis l’étape 1."],
+  ["Jours 4 à 10","Construis la première version avec Claude. Une heure par jour suffit. Objectif : une page qui marche et qui est en ligne."],
+  ["Jours 11 à 15","Teste avec 3 personnes de ta cible ("+A.aud_t.toLowerCase()+"). Note ce qui les bloque et corrige l’essentiel."],
+  ["Jours 16 à 20","Ajoute le paiement Stripe au prix de "+x.p+". Fais un vrai paiement test avec ta propre carte."],
+  ["Jours 21 à 30","Trouve tes premiers clients via "+CH[x.ch]+". Vise 10 contacts par jour et 1 client payant avant le jour 30."]];
+  var ul=$("plan");ul.innerHTML="";
+  P.forEach(function(p){var li=document.createElement("li");var b=document.createElement("strong");b.textContent=p[0];
+    li.appendChild(b);li.appendChild(document.createElement("br"));li.appendChild(document.createTextNode(p[1]));ul.appendChild(li)});
+  var bs=$("pick").children;for(var k=0;k<bs.length;k++){bs[k].style.background=k===chosen?"var(--acc)":"transparent";bs[k].style.color=k===chosen?"var(--acc-ink)":"var(--ink)"}
+}
+$("go").onclick=function(){i=0;show("quiz");ask()};
+$("again").onclick=function(){i=0;show("quiz");ask();window.scrollTo(0,0)};
+$("copy").onclick=function(){
+  var ta=$("prompt");ta.focus();ta.select();var ok=false;
+  try{ok=document.execCommand("copy")}catch(e){}
+  $("copied").textContent=ok?"Prompt copié. Colle-le dans Claude.":"Sélectionné : copie-le avec Ctrl+C (ou appui long sur mobile).";
+};
+</script>
+</body>
+</html>
