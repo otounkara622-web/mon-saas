@@ -28,16 +28,24 @@
       h1 { max-width: 650px; margin: 0; font-size: clamp(34px, 7vw, 54px); line-height: 1.03; letter-spacing: -.055em; }
       .intro { max-width: 600px; margin: 16px 0 26px; color: var(--muted); font-size: 17px; line-height: 1.6; }
       .card { padding: clamp(20px, 5vw, 34px); border: 1px solid var(--line); border-radius: 20px; background: var(--panel); box-shadow: 0 12px 36px #213b3010; }
+      .buy { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; padding: 18px 20px; border: 1px solid #f0dfaa; border-radius: 16px; background: #fff7e4; }
+      .buy-text { font-size: 14px; line-height: 1.5; color: #66501e; }
+      .buy-text strong { display: block; margin-bottom: 2px; color: var(--ink); font-size: 16px; }
+      .buy a { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 11px; background: var(--green); color: #fff; font-weight: 750; text-decoration: none; }
+      .buy a:hover { background: var(--green-dark); }
       label { display: block; margin: 0 0 9px; font-size: 14px; font-weight: 700; }
       .hint { margin: -3px 0 11px; color: var(--muted); font-size: 13px; line-height: 1.45; }
-      textarea { display: block; width: 100%; min-height: 154px; padding: 14px 15px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); font: inherit; font-size: 15px; line-height: 1.5; resize: vertical; }
-      textarea:focus { outline: 3px solid #146b5523; border-color: var(--green); }
+      textarea, input[type="text"] { display: block; width: 100%; padding: 14px 15px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); font: inherit; font-size: 15px; line-height: 1.5; }
+      textarea { min-height: 154px; resize: vertical; }
+      input[type="text"] { min-height: 48px; letter-spacing: .06em; text-transform: uppercase; }
+      input[type="text"]::placeholder { text-transform: none; letter-spacing: 0; }
+      textarea:focus, input[type="text"]:focus { outline: 3px solid #146b5523; border-color: var(--green); }
       .field + .field { margin-top: 22px; }
       #candidate { min-height: 118px; }
       .privacy { margin: 20px 0 0; padding: 12px 14px; border-radius: 10px; background: #fff7e4; color: #66501e; font-size: 12px; line-height: 1.5; }
       .actions { display: flex; align-items: center; gap: 12px; margin-top: 21px; }
       button { min-height: 48px; padding: 0 19px; border: 0; border-radius: 11px; font: inherit; font-weight: 750; cursor: pointer; }
-      button:focus-visible { outline: 3px solid #e7b84f; outline-offset: 3px; }
+      button:focus-visible, .buy a:focus-visible { outline: 3px solid #e7b84f; outline-offset: 3px; }
       button:disabled { cursor: wait; opacity: .68; }
       .primary { background: var(--green); color: #fff; }
       .primary:hover:not(:disabled) { background: var(--green-dark); }
@@ -51,7 +59,7 @@
       #result { min-height: 360px; background: #fffefa; }
       .edit-note { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
       footer { margin-top: 18px; color: var(--muted); font-size: 12px; line-height: 1.6; }
-      @media (max-width: 520px) { .page { padding-top: 26px; } .brand { margin-bottom: 28px; } .actions { align-items: stretch; flex-direction: column; } .actions button { width: 100%; } .result-head { align-items: flex-start; flex-direction: column; } }
+      @media (max-width: 520px) { .page { padding-top: 26px; } .brand { margin-bottom: 28px; } .buy { flex-direction: column; align-items: stretch; } .buy a { width: 100%; } .actions { align-items: stretch; flex-direction: column; } .actions button { width: 100%; } .result-head { align-items: flex-start; flex-direction: column; } }
     </style>
   </head>
   <body>
@@ -61,7 +69,20 @@
       <h1>Une lettre qui répond à l’offre.</h1>
       <p class="intro">Colle l’annonce et quelques éléments sur ton parcours. Tu obtiens une première version à relire, corriger et personnaliser avant de l’envoyer.</p>
 
+      <div class="buy">
+        <div class="buy-text">
+          <strong>Pack de 5 lettres — 5 € (environ 50 000 GNF)</strong>
+          Paiement par Orange Money. Écris-nous sur WhatsApp : tu reçois ton code d’accès après réception du paiement.
+        </div>
+        <a href="https://wa.me/224621604146?text=Bonjour%2C%20je%20veux%20un%20pack%20de%205%20lettres%20de%20motivation.%20Je%20paie%20par%20Orange%20Money." target="_blank" rel="noopener">Acheter sur WhatsApp</a>
+      </div>
+
       <form class="card" id="letter-form">
+        <div class="field">
+          <label for="code">Ton code d’accès</label>
+          <p class="hint">Tu l’as reçu sur WhatsApp après ton paiement.</p>
+          <input type="text" id="code" name="code" maxlength="40" autocomplete="off" spellcheck="false" required placeholder="Ex. LET-AB12CD" />
+        </div>
         <div class="field">
           <label for="job">L’offre de stage</label>
           <p class="hint">Colle le texte de l’annonce, ou décris le poste et l’entreprise.</p>
@@ -92,11 +113,23 @@
       const submitButton = document.querySelector("#generate");
       const resultWrap = document.querySelector("#result-wrap");
       const result = document.querySelector("#result");
+      const codeInput = document.querySelector("#code");
+
+      try {
+        const savedCode = localStorage.getItem("lettre-code");
+        if (savedCode) codeInput.value = savedCode;
+      } catch {}
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
+        const code = codeInput.value.trim().toUpperCase();
         const job = document.querySelector("#job").value.trim();
         const candidate = document.querySelector("#candidate").value.trim();
+        if (code.length < 4) {
+          status.textContent = "Entre ton code d’accès. Tu peux l’obtenir en achetant un pack sur WhatsApp.";
+          status.className = "status error";
+          return;
+        }
         if (job.length < 40 || candidate.length < 20) {
           status.textContent = "Ajoute un peu plus de détails dans les deux champs pour obtenir une lettre utile.";
           status.className = "status error";
@@ -113,14 +146,21 @@
           const response = await fetch("/api/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ job, candidate }),
+            body: JSON.stringify({ job, candidate, code }),
           });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || "La génération n’a pas abouti. Réessaie dans un instant.");
           result.value = data.letter || "";
           if (!result.value) throw new Error("La réponse de l’IA était vide. Réessaie.");
+          try { localStorage.setItem("lettre-code", code); } catch {}
           resultWrap.classList.add("visible");
-          status.textContent = "Ta première version est prête. Relis-la avant de l’envoyer.";
+          let message = "Ta première version est prête. Relis-la avant de l’envoyer.";
+          if (typeof data.creditsLeft === "number") {
+            message += data.creditsLeft === 0
+              ? " C’était ta dernière lettre avec ce code."
+              : " Il te reste " + data.creditsLeft + " lettre" + (data.creditsLeft > 1 ? "s" : "") + " avec ce code.";
+          }
+          status.textContent = message;
           result.focus();
         } catch (error) {
           status.textContent = error.message || "Une erreur est survenue. Réessaie dans un instant.";
