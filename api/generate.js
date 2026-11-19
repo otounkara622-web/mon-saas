@@ -1,5 +1,20 @@
 const MAX_JOB_CHARS = 12_000;
 const MAX_CANDIDATE_CHARS = 5_000;
+const CODE_PATTERN = /^[A-Z0-9-]{4,40}$/;
+
+async function callCredit(baseUrl, secretKey, functionName, code) {
+  const res = await fetch(`${baseUrl}/rest/v1/rpc/${functionName}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: secretKey,
+    },
+    body: JSON.stringify({ p_code: code }),
+  });
+  if (!res.ok) throw new Error(`SUPABASE_${res.status}`);
+  const value = await res.json().catch(() => null);
+  return typeof value === "number" ? value : null;
+}
 
 export default async function handler(request, response) {
   if (request.method !== "POST") {
@@ -8,13 +23,20 @@ export default async function handler(request, response) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return response.status(503).json({ error: "La clé de l’IA n’est pas encore configurée sur le site." });
+  const supabaseUrl = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+  if (!apiKey || !supabaseUrl || !supabaseKey) {
+    return response.status(503).json({ error: "Le site n’est pas encore entièrement configuré. Réessaie plus tard." });
   }
 
-  const { job, candidate } = request.body || {};
-  if (typeof job !== "string" || typeof candidate !== "string") {
-    return response.status(400).json({ error: "Remplis les deux champs avant de générer la lettre." });
+  const { job, candidate, code } = request.body || {};
+  if (typeof job !== "string" || typeof candidate !== "string" || typeof code !== "string") {
+    return response.status(400).json({ error: "Remplis les trois champs avant de générer la lettre." });
+  }
+
+  const cleanCode = code.trim().toUpperCase();
+  if (!CODE_PATTERN.test(cleanCode)) {
+    return response.status(403).json({ error: "Code d’accès invalide. Vérifie-le ou écris-nous sur WhatsApp." });
   }
 
   const cleanJob = job.trim();
@@ -25,6 +47,26 @@ export default async function handler(request, response) {
   if (cleanJob.length > MAX_JOB_CHARS || cleanCandidate.length > MAX_CANDIDATE_CHARS) {
     return response.status(413).json({ error: "Le texte est trop long. Raccourcis-le puis réessaie." });
   }
+
+  // 1. On retire un crédit avant de lancer l'IA.
+  let creditsLeft;
+  try {
+    creditsLeft = await callCredit(supabaseUrl, supabaseKey, "use_credit", cleanCode);
+  } catch (error) {
+    console.error("Supabase use_credit failed", error?.message || "ERROR");
+    return response.status(503).json({ error: "Vérification du code impossible pour le moment. Réessaie dans un instant." });
+  }
+  if (creditsLeft === null) {
+    return response.status(403).json({ error: "Code invalide ou déjà épuisé. Écris-nous sur WhatsApp pour un nouveau pack." });
+  }
+
+  const refund = async () => {
+    try {
+      await callCredit(supabaseUrl, supabaseKey, "refund_credit", cleanCode);
+    } catch (error) {
+      console.error("Supabase refund_credit failed", error?.message || "ERROR");
+    }
+  };
 
   const input = [
     "Tu es un conseiller en rédaction de candidatures de stage en français.",
@@ -54,7 +96,8 @@ export default async function handler(request, response) {
     const payload = await upstream.json().catch(() => ({}));
     if (!upstream.ok) {
       console.error("Gemini API request failed", upstream.status, payload.error?.status || "API_ERROR");
-      return response.status(502).json({ error: "Le service d’IA n’a pas répondu correctement. Réessaie plus tard." });
+      await refund();
+      return response.status(502).json({ error: "Le service d’IA n’a pas répondu correctement. Ton crédit t’a été rendu, réessaie plus tard." });
     }
 
     const letter = (payload.steps || [])
@@ -66,11 +109,13 @@ export default async function handler(request, response) {
       .trim();
 
     if (!letter) {
-      return response.status(502).json({ error: "L’IA a renvoyé une réponse vide. Réessaie." });
+      await refund();
+      return response.status(502).json({ error: "L’IA a renvoyé une réponse vide. Ton crédit t’a été rendu, réessaie." });
     }
-    return response.status(200).json({ letter });
+    return response.status(200).json({ letter, creditsLeft });
   } catch (error) {
     console.error("Gemini API connection failed", error?.name || "NETWORK_ERROR");
-    return response.status(502).json({ error: "Connexion à l’IA impossible pour le moment. Réessaie plus tard." });
+    await refund();
+    return response.status(502).json({ error: "Connexion à l’IA impossible pour le moment. Ton crédit t’a été rendu, réessaie plus tard." });
   }
 }
